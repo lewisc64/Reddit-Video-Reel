@@ -245,7 +245,11 @@ const App = () => {
             setSubreddit(e.target.value);
           }}
         ></input>
-        <select defaultValue={sort} onChange={(e) => setSort(e.target.value)}>
+        <select
+          defaultValue={sort}
+          onChange={(e) => setSort(e.target.value)}
+          onKeyDown={(e) => e.preventDefault()}
+        >
           <option value="hot">Hot</option>
           <option value="new">New</option>
           <option value="top">Top</option>
@@ -254,6 +258,7 @@ const App = () => {
           <select
             defaultValue={timeSpan}
             onChange={(e) => setTimeSpan(e.target.value)}
+            onKeyDown={(e) => e.preventDefault()}
           >
             <option value="today">Today</option>
             <option value="week">This Week</option>
