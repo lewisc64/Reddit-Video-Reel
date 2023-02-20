@@ -181,11 +181,16 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
                 nextVideo();
               }
             }}
+            onError={(e) => {
+              if (e.target.id !== 'audioSource' && autoNext) {
+                nextVideo();
+              }
+            }}
           >
             <source src={videoList[videoIndex].url} />
             {videoList[videoIndex].audioUrl != null ? (
               <audio autoPlay muted={muted} loop={!autoNext}>
-                <source src={videoList[videoIndex].audioUrl} />
+                <source id="audioSource" src={videoList[videoIndex].audioUrl} />
               </audio>
             ) : null}
           </video>
