@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import jsonp from 'jsonp';
 import './App.css';
 
@@ -69,14 +69,24 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
   const [pagingAfter, setPagingAfter] = useState('');
   const [videoList, setVideoList] = useState([]);
   const [videoIndex, setVideoIndex] = useState(0);
-  const [loadingVideos, setLoadingVideos] = useState(false);
+  const isLoadingVideos = useRef(false);
+  const cancelVideoLoadRequestCallback = useRef(() => {});
 
   const [autoNext, setAutoNext] = useState(true);
   const [muted, setMuted] = useState(true);
 
+  const createdArrowKeyHandler = useRef(false);
   const [previousSubreddit, setPreviousSubreddit] = useState(subreddit);
   const [previousSort, setPreviousSort] = useState(sort);
   const [previousTimeSpan, setPreviousTimeSpan] = useState(timeSpan);
+
+  const reset = useCallback(() => {
+    setPagingAfter('');
+    setVideoList([]);
+    setVideoIndex(0);
+    cancelVideoLoadRequestCallback.current();
+    isLoadingVideos.current = false;
+  }, []);
 
   useEffect(() => {
     if (
@@ -84,9 +94,7 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
       sort !== previousSort ||
       timeSpan !== previousTimeSpan
     ) {
-      setPagingAfter('');
-      setVideoList([]);
-      setVideoIndex(0);
+      reset();
       setPreviousSubreddit(subreddit);
       setPreviousSort(sort);
       setPreviousTimeSpan(timeSpan);
@@ -98,6 +106,7 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
     previousSort,
     timeSpan,
     previousTimeSpan,
+    reset,
   ]);
 
   const nextVideo = useCallback(() => {
@@ -109,22 +118,29 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
   }, []);
 
   useEffect(() => {
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowRight') {
-        nextVideo();
-      } else if (e.key === 'ArrowLeft') {
-        previousVideo();
-      }
-    });
+    if (!createdArrowKeyHandler.current) {
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowRight') {
+          nextVideo();
+        } else if (e.key === 'ArrowLeft') {
+          previousVideo();
+        }
+      });
+      createdArrowKeyHandler.current = true;
+    }
   }, [nextVideo, previousVideo]);
 
   const fetchNextSetOfVideos = useCallback(() => {
-    setLoadingVideos(true);
-    jsonp(
+    if (isLoadingVideos.current) {
+      return;
+    }
+    isLoadingVideos.current = true;
+    cancelVideoLoadRequestCallback.current = jsonp(
       `https://www.reddit.com/r/${subreddit}/${sort}.json?after=${pagingAfter}&t=${timeSpan}`,
-      { param: 'jsonp' },
+      { param: 'jsonp', timeout: 5000 },
       async (err, data) => {
         if (err) {
+          isLoadingVideos.current = false;
           console.error(err);
           return;
         }
@@ -140,16 +156,16 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
 
         setPagingAfter(data.data.after);
         setVideoList((previous) => [...previous, ...newVideos]);
-        setLoadingVideos(false);
+        isLoadingVideos.current = false;
       }
     );
   }, [subreddit, sort, pagingAfter, timeSpan]);
 
   useEffect(() => {
-    if (!loadingVideos && videoIndex + 1 >= videoList.length) {
+    if (videoIndex >= videoList.length) {
       fetchNextSetOfVideos();
     }
-  }, [loadingVideos, videoIndex, videoList, fetchNextSetOfVideos]);
+  }, [videoIndex, videoList, fetchNextSetOfVideos]);
 
   return (
     <div id="videoReel">
