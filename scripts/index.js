@@ -62,7 +62,6 @@ const VideoInformation = ({ video, videoNumber, totalVideos }) => {
 };
 
 const VideoReel = ({ subreddit, sort, timeSpan }) => {
-  const [apiEndpoint, setApiEndpoint] = React.useState(null);
   const [pagingAfter, setPagingAfter] = React.useState("");
   const [videoList, setVideoList] = React.useState([]);
   const [videoIndex, setVideoIndex] = React.useState(0);
@@ -97,12 +96,6 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
     previousTimeSpan,
   ]);
 
-  React.useEffect(() => {
-    setApiEndpoint(
-      `https://www.reddit.com/r/${subreddit}/${sort}.json?after=${pagingAfter}&t=${timeSpan}&jsonp=?`
-    );
-  }, [subreddit, sort, timeSpan, pagingAfter]);
-
   const nextVideo = React.useCallback(() => {
     setVideoIndex((previous) => previous + 1);
   }, []);
@@ -123,8 +116,9 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
 
   const fetchNextSetOfVideos = React.useCallback(() => {
     // I can't believe I need to use jquery purely because CORS is a pain in the ass.
+    setLoadingVideos(true);
     $.ajax({
-      url: apiEndpoint,
+      url: `https://www.reddit.com/r/${subreddit}/${sort}.json?after=${pagingAfter}&t=${timeSpan}&jsonp=?`,
       dataType: "jsonp",
       jsonp: true,
       success: async (data) => {
@@ -144,19 +138,13 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
       },
       timeout: 5000,
     });
-
-    setLoadingVideos(true);
-  }, [apiEndpoint]);
+  }, [subreddit, sort, pagingAfter, timeSpan]);
 
   React.useEffect(() => {
-    if (
-      apiEndpoint !== null &&
-      !loadingVideos &&
-      videoIndex >= videoList.length
-    ) {
+    if (!loadingVideos && videoIndex >= videoList.length) {
       fetchNextSetOfVideos();
     }
-  }, [apiEndpoint, loadingVideos, videoIndex, videoList, fetchNextSetOfVideos]);
+  }, [loadingVideos, videoIndex, videoList, fetchNextSetOfVideos]);
 
   return (
     <div id="videoReel">
