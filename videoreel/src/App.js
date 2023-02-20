@@ -162,7 +162,7 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
   }, [subreddit, sort, pagingAfter, timeSpan]);
 
   useEffect(() => {
-    if (videoIndex >= videoList.length) {
+    if (videoIndex + 1 >= videoList.length) {
       fetchNextSetOfVideos();
     }
   }, [videoIndex, videoList, fetchNextSetOfVideos]);
