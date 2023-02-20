@@ -6,10 +6,6 @@ async function extractMp4StreamFromLink(url) {
 }
 
 function transformRedditVideoUrlToAudio(url) {
-  console.log(url);
-  console.log(
-    `https://v.redd.it/${url.match(/redd\.it\/([^\/]+)/)[1]}/DASH_audio.mp4`
-  );
   return `https://v.redd.it/${
     url.match(/redd\.it\/([^\/]+)/)[1]
   }/DASH_audio.mp4`;
