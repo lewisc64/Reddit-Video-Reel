@@ -5,6 +5,16 @@ async function extractMp4StreamFromLink(url) {
   return null;
 }
 
+function transformRedditVideoUrlToAudio(url) {
+  console.log(url);
+  console.log(
+    `https://v.redd.it/${url.match(/redd\.it\/([^\/]+)/)[1]}/DASH_audio.mp4`
+  );
+  return `https://v.redd.it/${
+    url.match(/redd\.it\/([^\/]+)/)[1]
+  }/DASH_audio.mp4`;
+}
+
 async function extractMediaFromPost(post) {
   let videoUrl = await extractMp4StreamFromLink(post.url);
   let audioUrl = null;
@@ -12,24 +22,25 @@ async function extractMediaFromPost(post) {
   if (videoUrl === null) {
     if (post.media != null && post.media.reddit_video != null) {
       videoUrl = post.media.reddit_video.fallback_url;
-      audioUrl = `https://v.redd.it/${
-        post.media.reddit_video.fallback_url.match(/redd\.it\/([^\/]+)/)[1]
-      }/DASH_audio.mp4`;
+      audioUrl = transformRedditVideoUrlToAudio(
+        post.media.reddit_video.fallback_url
+      );
     } else if (
       post.secure_media != null &&
       post.secure_media.reddit_video != null
     ) {
       videoUrl = post.secure_media.reddit_video.fallback_url;
-      audioUrl = `https://v.redd.it/${
-        post.secure_media.reddit_video.fallback_url.match(
-          /redd\.it\/([^\/]+)/
-        )[1]
-      }/DASH_audio.mp4`;
+      audioUrl = transformRedditVideoUrlToAudio(
+        post.secure_media.reddit_video.fallback_url
+      );
     } else if (
       post.preview != null &&
       post.preview.reddit_video_preview != null
     ) {
       videoUrl = post.preview.reddit_video_preview.fallback_url;
+      audioUrl = transformRedditVideoUrlToAudio(
+        post.preview.reddit_video_preview.fallback_url
+      );
     } else {
       console.log(`Unhandled reddit post: ${post.permalink}`);
     }
