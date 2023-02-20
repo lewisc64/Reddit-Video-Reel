@@ -1,13 +1,17 @@
+import { useEffect, useState, useCallback } from 'react';
+import jsonp from 'jsonp';
+import './App.css';
+
 async function extractMp4StreamFromLink(url) {
-  if (/^https?:\/\/i\.imgur\.com\/[^\.]+\.gifv\/?$/.exec(url)) {
-    return url.replace("gifv", "mp4");
+  if (/^https?:\/\/i\.imgur\.com\/[^.]+\.gifv\/?$/.exec(url)) {
+    return url.replace('gifv', 'mp4');
   }
   return null;
 }
 
 function transformRedditVideoUrlToAudio(url) {
   return `https://v.redd.it/${
-    url.match(/redd\.it\/([^\/]+)/)[1]
+    url.match(/redd\.it\/([^/]+)/)[1]
   }/DASH_audio.mp4`;
 }
 
@@ -52,7 +56,7 @@ const VideoInformation = ({ video, videoNumber, totalVideos }) => {
   return (
     <div id="info">
       <p>
-        Video {videoNumber}/{totalVideos}:{" "}
+        Video {videoNumber}/{totalVideos}:{' '}
         <a href={`https://www.reddit.com${video.post.permalink}`}>
           {video.post.title}
         </a>
@@ -62,25 +66,25 @@ const VideoInformation = ({ video, videoNumber, totalVideos }) => {
 };
 
 const VideoReel = ({ subreddit, sort, timeSpan }) => {
-  const [pagingAfter, setPagingAfter] = React.useState("");
-  const [videoList, setVideoList] = React.useState([]);
-  const [videoIndex, setVideoIndex] = React.useState(0);
-  const [loadingVideos, setLoadingVideos] = React.useState(false);
+  const [pagingAfter, setPagingAfter] = useState('');
+  const [videoList, setVideoList] = useState([]);
+  const [videoIndex, setVideoIndex] = useState(0);
+  const [loadingVideos, setLoadingVideos] = useState(false);
 
-  const [autoNext, setAutoNext] = React.useState(true);
-  const [muted, setMuted] = React.useState(true);
+  const [autoNext, setAutoNext] = useState(true);
+  const [muted, setMuted] = useState(true);
 
-  const [previousSubreddit, setPreviousSubreddit] = React.useState(subreddit);
-  const [previousSort, setPreviousSort] = React.useState(sort);
-  const [previousTimeSpan, setPreviousTimeSpan] = React.useState(timeSpan);
+  const [previousSubreddit, setPreviousSubreddit] = useState(subreddit);
+  const [previousSort, setPreviousSort] = useState(sort);
+  const [previousTimeSpan, setPreviousTimeSpan] = useState(timeSpan);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (
       subreddit !== previousSubreddit ||
       sort !== previousSort ||
       timeSpan !== previousTimeSpan
     ) {
-      setPagingAfter("");
+      setPagingAfter('');
       setVideoList([]);
       setVideoIndex(0);
       setPreviousSubreddit(subreddit);
@@ -96,32 +100,34 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
     previousTimeSpan,
   ]);
 
-  const nextVideo = React.useCallback(() => {
+  const nextVideo = useCallback(() => {
     setVideoIndex((previous) => previous + 1);
   }, []);
 
-  const previousVideo = React.useCallback(() => {
+  const previousVideo = useCallback(() => {
     setVideoIndex((previous) => Math.max(previous - 1, 0));
   }, []);
 
-  React.useEffect(() => {
-    window.addEventListener("keyup", (e) => {
-      if (e.key == "ArrowRight") {
+  useEffect(() => {
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowRight') {
         nextVideo();
-      } else if (e.key == "ArrowLeft") {
+      } else if (e.key === 'ArrowLeft') {
         previousVideo();
       }
     });
-  }, []);
+  }, [nextVideo, previousVideo]);
 
-  const fetchNextSetOfVideos = React.useCallback(() => {
-    // I can't believe I need to use jquery purely because CORS is a pain in the ass.
+  const fetchNextSetOfVideos = useCallback(() => {
     setLoadingVideos(true);
-    $.ajax({
-      url: `https://www.reddit.com/r/${subreddit}/${sort}.json?after=${pagingAfter}&t=${timeSpan}&jsonp=?`,
-      dataType: "jsonp",
-      jsonp: true,
-      success: async (data) => {
+    jsonp(
+      `https://www.reddit.com/r/${subreddit}/${sort}.json?after=${pagingAfter}&t=${timeSpan}`,
+      { param: 'jsonp' },
+      async (err, data) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
         const posts = data.data.children.map((x) => x.data);
         const newVideos = [];
 
@@ -135,13 +141,12 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
         setPagingAfter(data.data.after);
         setVideoList((previous) => [...previous, ...newVideos]);
         setLoadingVideos(false);
-      },
-      timeout: 5000,
-    });
+      }
+    );
   }, [subreddit, sort, pagingAfter, timeSpan]);
 
-  React.useEffect(() => {
-    if (!loadingVideos && videoIndex >= videoList.length) {
+  useEffect(() => {
+    if (!loadingVideos && videoIndex + 1 >= videoList.length) {
       fetchNextSetOfVideos();
     }
   }, [loadingVideos, videoIndex, videoList, fetchNextSetOfVideos]);
@@ -201,10 +206,10 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
   );
 };
 
-const Main = () => {
-  const [subreddit, setSubreddit] = React.useState("oddlysatisfying");
-  const [sort, setSort] = React.useState("hot");
-  const [timeSpan, setTimeSpan] = React.useState("");
+const App = () => {
+  const [subreddit, setSubreddit] = useState('oddlysatisfying');
+  const [sort, setSort] = useState('hot');
+  const [timeSpan, setTimeSpan] = useState('');
 
   return (
     <div>
@@ -224,7 +229,7 @@ const Main = () => {
           <option value="new">New</option>
           <option value="top">Top</option>
         </select>
-        {sort === "top" ? (
+        {sort === 'top' ? (
           <select
             defaultValue={timeSpan}
             onChange={(e) => setTimeSpan(e.target.value)}
@@ -241,4 +246,4 @@ const Main = () => {
   );
 };
 
-ReactDOM.render(<Main />, document.querySelector("main"));
+export default App;
