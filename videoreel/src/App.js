@@ -65,6 +65,80 @@ const VideoInformation = ({ video, videoNumber, totalVideos }) => {
   );
 };
 
+const DraggableVideo = ({
+  url,
+  audioUrl,
+  muted,
+  autoNext,
+  previousVideoCallback,
+  nextVideoCallback,
+}) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [lastMoveClientX, setLastMoveClientX] = useState(0);
+
+  const releaseDrag = useCallback(() => {
+    if (!isDragging) {
+      return;
+    }
+    setIsDragging(false);
+    if (dragOffset > 100) {
+      previousVideoCallback();
+    } else if (dragOffset < -100) {
+      nextVideoCallback();
+    }
+    setDragOffset(0);
+  }, [isDragging, dragOffset, previousVideoCallback, nextVideoCallback]);
+
+  return (
+    <video
+      key={url}
+      style={{ transform: `translateX(${dragOffset}px)` }}
+      autoPlay
+      muted={muted}
+      loop={!autoNext}
+      onTouchStart={(e) => {
+        setIsDragging(true);
+        setDragOffset(0);
+        setLastMoveClientX(e.changedTouches[0].clientX);
+      }}
+      onTouchMove={(e) => {
+        if (isDragging) {
+          setDragOffset(
+            (previous) =>
+              previous + e.changedTouches[0].clientX - lastMoveClientX
+          );
+          setLastMoveClientX(e.changedTouches[0].clientX);
+        }
+      }}
+      onTouchEnd={() => {
+        releaseDrag();
+      }}
+      onEnded={() => {
+        if (autoNext) {
+          setIsDragging(false);
+          setDragOffset(0);
+          nextVideoCallback();
+        }
+      }}
+      onError={(e) => {
+        if (e.target.id !== 'audioSource' && autoNext) {
+          setIsDragging(false);
+          setDragOffset(0);
+          nextVideoCallback();
+        }
+      }}
+    >
+      <source src={url} />
+      {audioUrl != null ? (
+        <audio autoPlay muted={muted} loop={!autoNext}>
+          <source id="audioSource" src={audioUrl} />
+        </audio>
+      ) : null}
+    </video>
+  );
+};
+
 const VideoReel = ({ subreddit, sort, timeSpan }) => {
   const [pagingAfter, setPagingAfter] = useState('');
   const [videoList, setVideoList] = useState([]);
@@ -171,29 +245,14 @@ const VideoReel = ({ subreddit, sort, timeSpan }) => {
     <div id="videoReel">
       <div id="videoContainer">
         {videoList[videoIndex] !== undefined ? (
-          <video
-            key={videoIndex}
-            autoPlay
+          <DraggableVideo
+            url={videoList[videoIndex].url}
+            audioUrl={videoList[videoIndex].audioUrl}
             muted={muted}
-            loop={!autoNext}
-            onEnded={() => {
-              if (autoNext) {
-                nextVideo();
-              }
-            }}
-            onError={(e) => {
-              if (e.target.id !== 'audioSource' && autoNext) {
-                nextVideo();
-              }
-            }}
-          >
-            <source src={videoList[videoIndex].url} />
-            {videoList[videoIndex].audioUrl != null ? (
-              <audio autoPlay muted={muted} loop={!autoNext}>
-                <source id="audioSource" src={videoList[videoIndex].audioUrl} />
-              </audio>
-            ) : null}
-          </video>
+            autoNext={autoNext}
+            previousVideoCallback={previousVideo}
+            nextVideoCallback={nextVideo}
+          />
         ) : null}
       </div>
       <div id="controls">
