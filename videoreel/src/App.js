@@ -301,7 +301,7 @@ const App = () => {
           placeholder="Subreddit"
           defaultValue={subreddit}
           onBlur={(e) => {
-            setSubreddit(e.target.value);
+            setSubreddit(e.target.value.trim());
           }}
         ></input>
         <select
